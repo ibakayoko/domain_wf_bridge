@@ -15,7 +15,7 @@
  * Creates a different node_access "realm" (domain_wf) by merging the
  * node_access settings of the Domain Access and the Workflow modules.
  */
-function domain_wf_node_access_records_alter(&$grants, $node) {
+function domain_wf_bridge_node_access_records_alter(&$grants, $node) {
     
   $domain_ids = array();
   $og_grants = array();
@@ -83,7 +83,7 @@ function domain_wf_node_access_records_alter(&$grants, $node) {
  * to nodes while ignoring the original node_access settings in Domain Access
  * and Organic Groups
  */
-function domain_wf_node_grants_alter(&$grants, $account, $op) {
+function domain_wf_bridge_node_grants_alter(&$grants, $account, $op) {
     
   $user_domains = array();
   $user_groups = array();

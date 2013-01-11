@@ -1,4 +1,4 @@
-name = Domain/Workflow Bridge
+name = Domain Access/Workflow Bridge
 description = Makes compatible the node access permissioning of domain access and workflow.
 
 core = 7.x

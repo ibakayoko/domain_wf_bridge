@@ -6,7 +6,7 @@
  * Prompt the site admin to rebuild the node_access table when 
  * this module is enabled.
  */
-function domain_wf_enable() {
+function domain_wf_bridge_enable() {
   node_access_needs_rebuild(TRUE);
 }
 
@@ -16,6 +16,6 @@ function domain_wf_enable() {
  * Prompt the site admin to rebuild the node_access table when 
  * this module is disabled.
  */
-function domain_wf_disable() {
+function domain_wf_bridge_disable() {
   node_access_needs_rebuild(TRUE);
 }
