@@ -1,0 +1,117 @@
+<?php
+/**
+ * Bridge module to allow Domain Access and Organic Groups permissions
+ * to coexist by creating a different node_access "realm" that merges the
+ * node_access rules of both modules
+ *
+ * From http://drupal.org/node/1355272
+ *
+ * Thanks for the help and input to agentrickard and BrightBold
+ */
+
+/**
+ * Implements hook_node_access_records_alter().
+ *
+ * Creates a different node_access "realm" (domain_wf) by merging the
+ * node_access settings of the Domain Access and the Workflow modules.
+ */
+function domain_wf_node_access_records_alter(&$grants, $node) {
+    
+  $domain_ids = array();
+  $og_grants = array();
+
+  foreach ($grants as $key => $grant) {
+      
+    switch ($grant['realm']) {
+        
+      case 'domain_id':
+        $domain_ids[] = $grant['gid'];
+        break;
+      // We treat domain_site as just another domain with id = 'all'.
+      case 'domain_site':
+        $domain_ids[] = 'all';
+        break;
+    case 'domain_unpublished':
+        $domain_ids[] = $grant['gid'];
+        break;
+      //case 'group_access_authenticated': // OG 1.x
+      case 'workflow_access':             
+        $og_grants[] = $grant;
+        break;
+     case 'workflow_access_owner':             
+        $og_grants[] = $grant;
+        break;    
+    }
+  }
+
+  // If there are access records for both domain and workflow, then we create our own
+  // combined record.
+  foreach ($domain_ids as $domain_id) {
+    foreach ($og_grants as $og_grant) {
+      $grants[] = array(
+        'realm' => "domain_wf_{$domain_id}",
+        'gid' => $og_grant['gid'],
+        'grant_view' => $og_grant['grant_view'],
+        'grant_update' => $og_grant['grant_update'],
+        'grant_delete' => $og_grant['grant_delete'],
+        'priority' => 0,
+      );
+    }
+  }
+
+  // If both domain grants and workflow grants exist for this node, then we are now
+  // managing access to this node. Delete their grants from entering the record.
+  
+  if (!empty($domain_ids) && !empty($og_grants)) {
+    foreach ($grants as $key => $grant) {
+      switch ($grant['realm']) {
+        case 'domain_id':
+        case 'domain_site':
+        case 'domain_unpublished':
+        case 'workflow_access_owner':
+        case 'workflow_access':             
+          unset($grants[$key]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_node_grants_alter().
+ *
+ * Based on the new node_access "realm" (domain_wf) it grants or revokes access
+ * to nodes while ignoring the original node_access settings in Domain Access
+ * and Organic Groups
+ */
+function domain_wf_node_grants_alter(&$grants, $account, $op) {
+    
+  $user_domains = array();
+  $user_groups = array();
+
+  // We treat domain_site as just another domain with id = 'all'.
+  if (isset($grants['domain_site'])) {
+    $user_domains = array_merge($user_domains, array('all'));
+  }
+  
+  if (!empty($grants['domain_id'])) {
+    $user_domains = array_merge($user_domains, $grants['domain_id']);
+  }
+  
+  if (!empty($grants['domain_unpublished'])) {
+    $user_domains = array_merge($user_domains, $grants['domain_id']);
+  }
+
+  if (!empty($grants['workflow_access'])) {
+    $user_groups = array_merge($user_groups, $grants['workflow_access']);
+  }
+  
+  if (!empty($grants['workflow_access_owner'])) {
+    $user_groups = array_merge($user_groups, $grants['workflow_access_owner']);
+  }
+
+  foreach ($user_domains as $user_domain) {
+    foreach ($user_groups as $user_group) {
+      $grants["domain_wf_{$user_domain}"][] = $user_group;
+    }
+  }
+}
